@@ -1,4 +1,3 @@
-
 # CineWeb – Sistema Administrativo
 
 Aplicação web desenvolvida em **React + Vite + TypeScript**, utilizando **Bootstrap**, **Bootstrap Icons**, **Zod** e **json-server** para simular a API REST.
@@ -15,6 +14,7 @@ O objetivo do sistema é permitir o gerenciamento administrativo de um cinema, i
 ## 🛠 Tecnologias Utilizadas
 
 ### **Frontend**
+
 - React + Vite (TypeScript)
 - React Router DOM
 - Bootstrap 5
@@ -23,6 +23,7 @@ O objetivo do sistema é permitir o gerenciamento administrativo de um cinema, i
 - Axios (requisições)
 
 ### **Backend Simulado**
+
 - json-server (porta 3000)
 
 ---
@@ -86,28 +87,36 @@ http://localhost:5173
 ## 📌 Funcionalidades
 
 ### 🎥 **Módulo de Filmes**
+
 - Listagem em tabela
 - Cadastro com validação Zod
 - Select de gênero e classificação
+- Edição
 - Exclusão
 
 ### 🏛 **Módulo de Salas**
+
 - Cadastro de salas
-- Select com números de 1 a 10
+- Select com números de 1 a 9
+- Edição
 - Exclusão
 
 ### 🎬 **Módulo de Sessões**
+
 - Select de filme e sala
 - Validação de data (não retroativa)
 - Listagem cruzando nome do filme e sala
+- Edição
 - Exclusão
 
 ### 🎟 **Venda de Ingressos (Modal)**
+
 - Modal ao clicar em “Vender”
 - Informações da sessão
 - Escolha entre **Inteira (R$ 34)** ou **Meia (R$ 17)**
 - Inserção automática no banco (`/ingressos`)
-- Sem campo editável de valor
+- Compre quantos ingressos quiser de uma vez
+- Assentos já escolhidos bloqueados
 - Mensagem de sucesso
 
 ---
@@ -126,14 +135,6 @@ src/
 
 ---
 
-## 📝 Observações
-
-- Os IDs são tratados como **string** para evitar problemas de comparação com o json-server.
-- Todos os relacionamentos (filme ↔ sessão, sala ↔ sessão) estão 100% funcionais.
-- O sistema está preparado para receber melhorias visuais posteriores.
-
----
-
 ## ✔ Projeto pronto para apresentação
 
 Esse projeto já contempla:
@@ -145,8 +146,4 @@ Esse projeto já contempla:
 - UI organizada
 - Modal funcional com lógica de negócio
 
-A estrutura foi construída seguindo boas práticas e está pronta para ser apresentada ao professor.
-
 ---
-
-Se quiser adicionar prints ou GIFs de demonstração, posso gerar a seção automaticamente.
