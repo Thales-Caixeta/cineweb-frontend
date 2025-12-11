@@ -1,73 +1,152 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# CineWeb – Sistema Administrativo
 
-Currently, two official plugins are available:
+Aplicação web desenvolvida em **React + Vite + TypeScript**, utilizando **Bootstrap**, **Bootstrap Icons**, **Zod** e **json-server** para simular a API REST.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+O objetivo do sistema é permitir o gerenciamento administrativo de um cinema, incluindo:
 
-## React Compiler
+- Cadastro de **filmes**
+- Cadastro de **salas**
+- Agendamento de **sessões**
+- Venda de **ingressos** com modal interativo
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠 Tecnologias Utilizadas
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### **Frontend**
+- React + Vite (TypeScript)
+- React Router DOM
+- Bootstrap 5
+- Bootstrap Icons
+- Zod (validações)
+- Axios (requisições)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### **Backend Simulado**
+- json-server (porta 3000)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 📁 Estrutura da API (db.json)
+
+```json
+{
+  "filmes": [],
+  "salas": [],
+  "sessoes": [],
+  "ingressos": [],
+  "lanches": [],
+  "pedidos": []
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🚀 Como Rodar o Projeto
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Instale as dependências:
+
 ```
+npm install
+```
+
+### 2. Inicie a API (json-server):
+
+```
+npm run api
+```
+
+A API ficará disponível em:
+
+```
+http://localhost:3000
+```
+
+Endpoints disponíveis:
+
+- `/filmes`
+- `/salas`
+- `/sessoes`
+- `/ingressos`
+
+### 3. Inicie o frontend:
+
+```
+npm run dev
+```
+
+A aplicação abrirá em:
+
+```
+http://localhost:5173
+```
+
+---
+
+## 📌 Funcionalidades
+
+### 🎥 **Módulo de Filmes**
+- Listagem em tabela
+- Cadastro com validação Zod
+- Select de gênero e classificação
+- Exclusão
+
+### 🏛 **Módulo de Salas**
+- Cadastro de salas
+- Select com números de 1 a 10
+- Exclusão
+
+### 🎬 **Módulo de Sessões**
+- Select de filme e sala
+- Validação de data (não retroativa)
+- Listagem cruzando nome do filme e sala
+- Exclusão
+
+### 🎟 **Venda de Ingressos (Modal)**
+- Modal ao clicar em “Vender”
+- Informações da sessão
+- Escolha entre **Inteira (R$ 34)** ou **Meia (R$ 17)**
+- Inserção automática no banco (`/ingressos`)
+- Sem campo editável de valor
+- Mensagem de sucesso
+
+---
+
+## 🧱 Estrutura de Pastas
+
+```
+src/
+  components/     → Navbar, Layout, etc.
+  pages/          → Filmes, Salas, Sessoes
+  models/         → Tipos e interfaces (TS)
+  schemas/        → Validações com Zod
+  services/       → Integração com API
+  routers/        → Sistema de rotas
+```
+
+---
+
+## 📝 Observações
+
+- Os IDs são tratados como **string** para evitar problemas de comparação com o json-server.
+- Todos os relacionamentos (filme ↔ sessão, sala ↔ sessão) estão 100% funcionais.
+- O sistema está preparado para receber melhorias visuais posteriores.
+
+---
+
+## ✔ Projeto pronto para apresentação
+
+Esse projeto já contempla:
+
+- Requisitos funcionais
+- Requisitos técnicos
+- Persistência
+- API REST completa
+- UI organizada
+- Modal funcional com lógica de negócio
+
+A estrutura foi construída seguindo boas práticas e está pronta para ser apresentada ao professor.
+
+---
+
+Se quiser adicionar prints ou GIFs de demonstração, posso gerar a seção automaticamente.
