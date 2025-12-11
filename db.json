@@ -1,40 +1,134 @@
 {
   "filmes": [
     {
-      "id": "fdaf",
-      "titulo": "Vingadores",
-      "sinopse": "Novo Filme\nTítulo\nSinopse",
+      "titulo": "Livre",
+      "sinopse": "Teste Livre Teste Livre ",
+      "classificacao": "L",
+      "duracao": 100,
+      "genero": "Animação",
+      "dataInicio": "2025-12-12",
+      "dataFim": "2025-12-31",
+      "id": "ea02"
+    },
+    {
+      "titulo": "Teste 10",
+      "sinopse": "Teste 10 Teste 10",
+      "classificacao": "10",
+      "duracao": 120,
+      "genero": "Aventura",
+      "dataInicio": "2025-12-12",
+      "dataFim": "2025-12-31",
+      "id": "97ff"
+    },
+    {
+      "titulo": "Teste 12 ",
+      "sinopse": "Teste 12 Teste 12",
+      "classificacao": "12",
+      "duracao": 90,
+      "genero": "Romance",
+      "dataInicio": "2025-12-12",
+      "dataFim": "2025-12-31",
+      "id": "6d11"
+    },
+    {
+      "titulo": "Teste 14 ",
+      "sinopse": "Teste 14 Teste 14",
+      "classificacao": "14",
+      "duracao": 150,
+      "genero": "Documentário",
+      "dataInicio": "2025-12-12",
+      "dataFim": "2025-12-31",
+      "id": "cf62"
+    },
+    {
+      "titulo": "Teste 16 ",
+      "sinopse": "Teste 16 Teste 16",
       "classificacao": "16",
-      "duracao": 140,
-      "genero": "Ficção Científica",
-      "dataInicio": "2025-12-01",
-      "dataFim": "2025-12-31"
+      "duracao": 110,
+      "genero": "Suspense",
+      "dataInicio": "2025-12-12",
+      "dataFim": "2025-12-31",
+      "id": "f461"
+    },
+    {
+      "titulo": "Teste 18",
+      "sinopse": "Teste 18 Teste 18",
+      "classificacao": "18",
+      "duracao": 120,
+      "genero": "Terror",
+      "dataInicio": "2025-12-12",
+      "dataFim": "2025-12-31",
+      "id": "f0f7"
     }
   ],
   "salas": [
     {
-      "id": "bd39",
-      "numero": "3",
-      "capacidade": 40
+      "numero": "1",
+      "capacidade": 64,
+      "id": "a918"
+    },
+    {
+      "numero": "2",
+      "capacidade": 112,
+      "id": "dae2"
     }
   ],
   "sessoes": [
     {
-      "id": "4884",
-      "filmeId": "fdaf",
-      "salaId": "bd39",
-      "data": "2025-12-17",
-      "hora": "04:10"
+      "filmeId": "ea02",
+      "salaId": "dae2",
+      "data": "2025-12-19",
+      "hora": "19:00",
+      "id": "5828"
     }
   ],
   "ingressos": [
     {
-      "id": "e7cd",
-      "sessaoId": "4884",
+      "id": "e79f",
+      "sessaoId": "5828",
+      "tipo": "meia",
+      "poltrona": "B5",
+      "valor": 17,
+      "dataVenda": "2025-12-11T19:56:15.529Z"
+    },
+    {
+      "id": "d31e",
+      "sessaoId": "5828",
       "tipo": "inteira",
-      "valor": 60
+      "poltrona": "B6",
+      "valor": 34,
+      "dataVenda": "2025-12-11T19:56:15.568Z"
     }
   ],
-  "lanches": [],
+  "lanches": [
+    {
+      "id": "ef92",
+      "nome": "Pipoca Grande",
+      "descricao": "Pipoca Grande 1 kg",
+      "preco": 40,
+      "categoria": "Pipoca"
+    },
+    {
+      "id": "345a",
+      "nome": "Refrigerante ",
+      "descricao": "Qualquer sabor de Refrigerante ",
+      "preco": 15,
+      "categoria": "Bebida"
+    },
+    {
+      "id": "69b8",
+      "nome": "Sorvete",
+      "descricao": "Milk Shake, Casquinha até 2 sabores",
+      "preco": 12,
+      "categoria": "Doce"
+    },
+    {
+      "id": "bf18",
+      "nome": "Pipoca e Refri",
+      "descricao": "Pipoca 1Kg e Refri 700ml",
+      "preco": 60,
+      "categoria": "Combo"
+    }
+  ],
   "pedidos": []
 }

@@ -17,7 +17,9 @@ import {
   getSessoes,
   createSessao,
   deleteSessao,
+  updateSessao,
   createIngresso,
+  getIngressos,
 } from "../../services/cinewebApi.service";
 
 type SessaoFormErrors = Partial<Record<keyof SessaoFormData, string>>;
@@ -33,6 +35,7 @@ const initialSessaoForm: SessaoFormData = {
 const initialIngressoForm: IngressoFormData = {
   sessaoId: "",
   tipo: "inteira",
+  poltrona: "",
 };
 
 function SessoesPage() {
@@ -44,15 +47,24 @@ function SessoesPage() {
     useState<SessaoFormData>(initialSessaoForm);
   const [sessaoErrors, setSessaoErrors] = useState<SessaoFormErrors>({});
   const [sessaoSubmitting, setSessaoSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | number | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [sessaoSelecionada, setSessaoSelecionada] = useState<Sessao | null>(
     null
   );
+  const [salaSelecionada, setSalaSelecionada] = useState<Sala | null>(null);
   const [ingressoFormData, setIngressoFormData] =
     useState<IngressoFormData>(initialIngressoForm);
   const [ingressoErrors, setIngressoErrors] = useState<IngressoFormErrors>({});
   const [ingressoSubmitting, setIngressoSubmitting] = useState(false);
+  const [poltronasOcupadas, setPoltronasOcupadas] = useState<string[]>([]);
+  const [loadingPoltronas, setLoadingPoltronas] = useState(false);
+
+  // Estado para múltiplos ingressos
+  const [ingressosSelecionados, setIngressosSelecionados] = useState<
+    Array<{ poltrona: string; tipo: "inteira" | "meia" }>
+  >([]);
 
   useEffect(() => {
     loadInitialData();
@@ -86,6 +98,20 @@ function SessoesPage() {
   function resetSessaoForm() {
     setSessaoFormData(initialSessaoForm);
     setSessaoErrors({});
+    setEditingId(null);
+  }
+
+  function handleEditSessao(sessao: Sessao) {
+    setSessaoFormData({
+      filmeId: String(sessao.filmeId),
+      salaId: String(sessao.salaId),
+      data: sessao.data,
+      hora: sessao.hora,
+    });
+    setEditingId(sessao.id!);
+    setSessaoErrors({});
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleSessaoSubmit(event: FormEvent) {
@@ -108,18 +134,31 @@ function SessoesPage() {
     }
 
     try {
-      const novaSessao: Sessao = {
+      const sessaoData: Sessao = {
         filmeId: sessaoFormData.filmeId,
         salaId: sessaoFormData.salaId,
         data: sessaoFormData.data,
         hora: sessaoFormData.hora,
       };
 
-      const criada = await createSessao(novaSessao);
-      setSessoes((prev) => [...prev, criada]);
+      if (editingId) {
+        // EDITANDO
+        const atualizada = await updateSessao(editingId, sessaoData);
+        setSessoes((prev) =>
+          prev.map((s) => (s.id === editingId ? atualizada : s))
+        );
+        alert("Sessão atualizada com sucesso!");
+      } else {
+        // CRIANDO
+        const criada = await createSessao(sessaoData);
+        setSessoes((prev) => [...prev, criada]);
+        alert("Sessão cadastrada com sucesso!");
+      }
+
       resetSessaoForm();
     } catch (error) {
-      console.error("Erro ao criar sessão", error);
+      console.error("Erro ao salvar sessão", error);
+      alert("Erro ao salvar sessão!");
     } finally {
       setSessaoSubmitting(false);
     }
@@ -133,6 +172,10 @@ function SessoesPage() {
     try {
       await deleteSessao(id);
       setSessoes((prev) => prev.filter((sessao) => sessao.id !== id));
+
+      if (editingId === id) {
+        resetSessaoForm();
+      }
     } catch (error) {
       console.error("Erro ao excluir sessão", error);
     }
@@ -152,22 +195,45 @@ function SessoesPage() {
     return sala ? sala.numero : "—";
   }
 
-  // ---------- MODAL / INGRESSO ----------
+  // ---------- MODAL / INGRESSO / POLTRONAS ----------
 
-  function abrirModalVenda(sessao: Sessao) {
+  async function abrirModalVenda(sessao: Sessao) {
     setSessaoSelecionada(sessao);
+
+    const sala = salas.find((s) => String(s.id) === String(sessao.salaId));
+    setSalaSelecionada(sala || null);
+
     setIngressoFormData({
       sessaoId: String(sessao.id),
       tipo: "inteira",
+      poltrona: "",
     });
     setIngressoErrors({});
+
+    setLoadingPoltronas(true);
+    try {
+      const ingressos = await getIngressos();
+      const ocupadas = ingressos
+        .filter((ing) => String(ing.sessaoId) === String(sessao.id))
+        .map((ing) => ing.poltrona);
+      setPoltronasOcupadas(ocupadas);
+    } catch (error) {
+      console.error("Erro ao carregar poltronas", error);
+      setPoltronasOcupadas([]);
+    } finally {
+      setLoadingPoltronas(false);
+    }
+
     setShowModal(true);
   }
 
   function fecharModal() {
     setShowModal(false);
     setSessaoSelecionada(null);
+    setSalaSelecionada(null);
     setIngressoErrors({});
+    setPoltronasOcupadas([]);
+    setIngressosSelecionados([]);
   }
 
   function handleIngressoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -181,58 +247,112 @@ function SessoesPage() {
     }
   }
 
+  function selecionarPoltrona(poltrona: string) {
+    // Verificar se a poltrona já está selecionada
+    const jaAdicionada = ingressosSelecionados.find(
+      (i) => i.poltrona === poltrona
+    );
+
+    if (jaAdicionada) {
+      // Remove a poltrona se já estava selecionada
+      setIngressosSelecionados((prev) =>
+        prev.filter((i) => i.poltrona !== poltrona)
+      );
+    } else {
+      // Adiciona nova poltrona com tipo inteira por padrão
+      setIngressosSelecionados((prev) => [
+        ...prev,
+        { poltrona, tipo: "inteira" },
+      ]);
+    }
+  }
+
+  function alterarTipoIngresso(poltrona: string, tipo: "inteira" | "meia") {
+    setIngressosSelecionados((prev) =>
+      prev.map((i) => (i.poltrona === poltrona ? { ...i, tipo } : i))
+    );
+  }
+
   async function handleIngressoSubmit(event: FormEvent) {
     event.preventDefault();
     if (!sessaoSelecionada) return;
 
-    setIngressoSubmitting(true);
-
-    const dados: IngressoFormData = {
-      sessaoId: String(sessaoSelecionada.id),
-      tipo: ingressoFormData.tipo,
-    };
-
-    const result = ingressoSchema.safeParse(dados);
-
-    if (!result.success) {
-      const fieldErrors: IngressoFormErrors = {};
-      result.error.issues.forEach((issue) => {
-        const fieldName = issue.path[0] as keyof IngressoFormData;
-        if (!fieldErrors[fieldName]) {
-          fieldErrors[fieldName] = issue.message;
-        }
-      });
-      setIngressoErrors(fieldErrors);
-      setIngressoSubmitting(false);
+    if (ingressosSelecionados.length === 0) {
+      alert("Selecione pelo menos uma poltrona!");
       return;
     }
 
+    setIngressoSubmitting(true);
+
     try {
-      const valor = dados.tipo === "inteira" ? 34 : 17;
+      // Criar todos os ingressos selecionados
+      for (const ingresso of ingressosSelecionados) {
+        const valor = ingresso.tipo === "inteira" ? 34 : 17;
 
-      await createIngresso({
-        sessaoId: dados.sessaoId,
-        tipo: dados.tipo,
-        valor,
-      });
+        await createIngresso({
+          sessaoId: String(sessaoSelecionada.id),
+          tipo: ingresso.tipo,
+          poltrona: ingresso.poltrona,
+          valor,
+          dataVenda: new Date().toISOString(),
+        });
+      }
 
-      window.alert("Ingresso vendido com sucesso!");
+      const qtd = ingressosSelecionados.length;
+      const total = ingressosSelecionados.reduce(
+        (sum, ing) => sum + (ing.tipo === "inteira" ? 34 : 17),
+        0
+      );
+
+      window.alert(
+        `${qtd} ingresso${qtd > 1 ? "s" : ""} vendido${
+          qtd > 1 ? "s" : ""
+        } com sucesso!\n` + `Total: R$ ${total.toFixed(2)}`
+      );
       fecharModal();
     } catch (error) {
-      console.error("Erro ao vender ingresso", error);
+      console.error("Erro ao vender ingressos", error);
+      alert("Erro ao vender ingressos!");
     } finally {
       setIngressoSubmitting(false);
     }
   }
 
-  function getInputClassIngresso(field: keyof IngressoFormData) {
-    return ingressoErrors[field]
-      ? "form-check-input is-invalid"
-      : "form-check-input";
+  function gerarPoltronas() {
+    const capacidade = salaSelecionada?.capacidade || 40;
+    const fileiras = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    const poltronasPorFileira = Math.ceil(capacidade / fileiras.length);
+
+    const poltronas: string[] = [];
+    for (let i = 0; i < fileiras.length; i++) {
+      for (let j = 1; j <= poltronasPorFileira; j++) {
+        if (poltronas.length < capacidade) {
+          poltronas.push(`${fileiras[i]}${j}`);
+        }
+      }
+    }
+    return poltronas;
   }
 
+  const todasPoltronas = gerarPoltronas();
+  const poltronasPorFileira = Math.ceil(
+    (salaSelecionada?.capacidade || 40) / 8
+  );
+
   return (
-    <div className="mt-4">
+    <div className="mt-4 sessoes-page">
+      <style>{`
+        .sessoes-page .card-header::before {
+          background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%) !important;
+        }
+        .sessoes-page .table tbody tr.editing {
+          background-color: rgba(245, 158, 11, 0.15) !important;
+        }
+        .sessoes-page .table tbody tr.editing:hover {
+          background-color: rgba(245, 158, 11, 0.25) !important;
+        }
+      `}</style>
+
       <h1 className="page-title">Sessões</h1>
       <p className="page-subtitle">
         Agende sessões relacionando filmes e salas, com data e horário
@@ -243,12 +363,17 @@ function SessoesPage() {
         {/* FORMULÁRIO DE SESSÃO */}
         <div className="col-lg-5">
           <div className="card shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title">
-                <i className="bi bi-calendar-plus me-2" />
-                Nova Sessão
+            <div className="card-header text-white">
+              <h5 className="mb-0">
+                <i
+                  className={`bi ${
+                    editingId ? "bi-pencil-square" : "bi-calendar-plus"
+                  } me-2`}
+                />
+                {editingId ? "Editar Sessão" : "Nova Sessão"}
               </h5>
-
+            </div>
+            <div className="card-body">
               {filmes.length === 0 || salas.length === 0 ? (
                 <p className="text-muted mt-3">
                   Cadastre pelo menos um filme e uma sala antes de criar
@@ -256,9 +381,8 @@ function SessoesPage() {
                 </p>
               ) : (
                 <form onSubmit={handleSessaoSubmit} noValidate>
-                  {/* FILME */}
                   <div className="mb-3">
-                    <label className="form-label">Filme</label>
+                    <label className="form-label fw-bold">Filme *</label>
                     <select
                       name="filmeId"
                       className={getInputClassSessao("filmeId")}
@@ -279,9 +403,8 @@ function SessoesPage() {
                     )}
                   </div>
 
-                  {/* SALA */}
                   <div className="mb-3">
-                    <label className="form-label">Sala</label>
+                    <label className="form-label fw-bold">Sala *</label>
                     <select
                       name="salaId"
                       className={getInputClassSessao("salaId")}
@@ -303,10 +426,9 @@ function SessoesPage() {
                   </div>
 
                   <div className="row">
-                    {/* DATA */}
                     <div className="col-md-6">
                       <div className="mb-3">
-                        <label className="form-label">Data</label>
+                        <label className="form-label fw-bold">Data *</label>
                         <input
                           type="date"
                           name="data"
@@ -322,10 +444,9 @@ function SessoesPage() {
                       </div>
                     </div>
 
-                    {/* HORA */}
                     <div className="col-md-6">
                       <div className="mb-3">
-                        <label className="form-label">Horário</label>
+                        <label className="form-label fw-bold">Horário *</label>
                         <input
                           type="time"
                           name="hora"
@@ -342,13 +463,39 @@ function SessoesPage() {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={sessaoSubmitting}
-                  >
-                    {sessaoSubmitting ? "Salvando..." : "Salvar Sessão"}
-                  </button>
+                  <div className="d-flex gap-2">
+                    <button
+                      type="submit"
+                      className="btn text-white flex-grow-1"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                      }}
+                      disabled={sessaoSubmitting}
+                    >
+                      <i
+                        className={`bi ${
+                          editingId ? "bi-check-circle" : "bi-save"
+                        } me-2`}
+                      />
+                      {sessaoSubmitting
+                        ? "Salvando..."
+                        : editingId
+                        ? "Atualizar"
+                        : "Salvar"}
+                    </button>
+
+                    {editingId && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={resetSessaoForm}
+                      >
+                        <i className="bi bi-x-circle me-2" />
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
                 </form>
               )}
             </div>
@@ -358,49 +505,67 @@ function SessoesPage() {
         {/* LISTAGEM DE SESSÕES */}
         <div className="col-lg-7">
           <div className="card shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title">
-                <i className="bi bi-calendar-event me-2" />
-                Sessões agendadas
+            <div className="card-header">
+              <h5 className="mb-0">
+                <i className="bi bi-clock-history me-2" />
+                Sessões agendadas ({sessoes.length})
               </h5>
-
+            </div>
+            <div className="card-body p-0">
               {sessoes.length === 0 ? (
-                <p className="text-muted mt-3">Nenhuma sessão cadastrada.</p>
+                <div className="text-center p-5">
+                  <i className="bi bi-clock-history display-1 text-muted"></i>
+                  <p className="text-muted mt-3">Nenhuma sessão cadastrada.</p>
+                </div>
               ) : (
-                <div className="table-responsive mt-3">
-                  <table className="table table-striped align-middle">
-                    <thead>
+                <div className="table-responsive">
+                  <table className="table table-hover mb-0 align-middle">
+                    <thead className="table-light">
                       <tr>
                         <th>Filme</th>
                         <th>Sala</th>
                         <th>Data</th>
                         <th>Horário</th>
-                        <th style={{ width: "160px" }}>Ações</th>
+                        <th style={{ width: "200px" }}>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sessoes.map((sessao) => (
-                        <tr key={sessao.id}>
+                        <tr
+                          key={sessao.id}
+                          className={editingId === sessao.id ? "editing" : ""}
+                        >
                           <td>{getFilmeTitulo(sessao.filmeId)}</td>
                           <td>Sala {getSalaNumero(sessao.salaId)}</td>
                           <td>{sessao.data}</td>
                           <td>{sessao.hora}</td>
-                          <td className="d-flex gap-2">
-                            <button
-                              type="button"
-                              className="btn btn-outline-success btn-sm"
-                              onClick={() => abrirModalVenda(sessao)}
-                            >
-                              <i className="bi bi-ticket-perforated" /> Vender
-                            </button>
-
-                            <button
-                              type="button"
-                              className="btn btn-outline-danger btn-sm"
-                              onClick={() => handleDeleteSessao(sessao.id)}
-                            >
-                              <i className="bi bi-trash" />
-                            </button>
+                          <td>
+                            <div className="btn-group btn-group-sm">
+                              <button
+                                type="button"
+                                className="btn btn-outline-success"
+                                onClick={() => abrirModalVenda(sessao)}
+                                title="Vender Ingresso"
+                              >
+                                <i className="bi bi-ticket-perforated" />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline-primary"
+                                onClick={() => handleEditSessao(sessao)}
+                                title="Editar"
+                              >
+                                <i className="bi bi-pencil" />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline-danger"
+                                onClick={() => handleDeleteSessao(sessao.id)}
+                                title="Excluir"
+                              >
+                                <i className="bi bi-trash" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -413,89 +578,333 @@ function SessoesPage() {
         </div>
       </div>
 
-      {/* MODAL DE VENDA DE INGRESSO */}
+      {/* MODAL DE VENDA (MESMO DE ANTES) */}
       {showModal && sessaoSelecionada && (
         <>
-          <div className="modal fade show" style={{ display: "block" }}>
-            <div className="modal-dialog">
+          <div
+            className="modal fade show"
+            style={{ display: "block" }}
+            onClick={fecharModal}
+          >
+            <div
+              className="modal-dialog modal-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="modal-content">
                 <form onSubmit={handleIngressoSubmit} noValidate>
-                  <div className="modal-header">
-                    <h5 className="modal-title">Vender ingresso</h5>
+                  <div className="modal-header bg-primary text-white">
+                    <h5 className="modal-title">
+                      <i className="bi bi-ticket-perforated me-2" />
+                      Vender Ingresso
+                    </h5>
                     <button
                       type="button"
-                      className="btn-close"
+                      className="btn-close btn-close-white"
                       onClick={fecharModal}
                     />
                   </div>
 
                   <div className="modal-body">
-                    <p className="mb-2">
-                      <strong>Filme:</strong>{" "}
-                      {getFilmeTitulo(sessaoSelecionada.filmeId)}
-                    </p>
-                    <p className="mb-2">
-                      <strong>Sala:</strong> Sala{" "}
-                      {getSalaNumero(sessaoSelecionada.salaId)}
-                    </p>
-                    <p className="mb-3">
-                      <strong>Data/Hora:</strong> {sessaoSelecionada.data} às{" "}
-                      {sessaoSelecionada.hora}
-                    </p>
+                    <div className="alert alert-info mb-4">
+                      <div className="row">
+                        <div className="col-md-4">
+                          <strong>
+                            <i className="bi bi-film me-1" /> Filme:
+                          </strong>
+                          <br />
+                          {getFilmeTitulo(sessaoSelecionada.filmeId)}
+                        </div>
+                        <div className="col-md-4">
+                          <strong>
+                            <i className="bi bi-projector-fill me-1" /> Sala:
+                          </strong>
+                          <br />
+                          Sala {getSalaNumero(sessaoSelecionada.salaId)}
+                        </div>
+                        <div className="col-md-4">
+                          <strong>
+                            <i className="bi bi-clock-history me-1" />{" "}
+                            Data/Hora:
+                          </strong>
+                          <br />
+                          {sessaoSelecionada.data} às {sessaoSelecionada.hora}
+                        </div>
+                      </div>
+                    </div>
 
-                    <hr />
+                    {/* Lista de ingressos selecionados */}
+                    {ingressosSelecionados.length > 0 && (
+                      <div className="mb-4">
+                        <label className="form-label fw-bold">
+                          <i className="bi bi-ticket-detailed me-2" />
+                          Ingressos Selecionados ({ingressosSelecionados.length}
+                          )
+                        </label>
+                        <div
+                          className="border rounded p-3"
+                          style={{ maxHeight: "200px", overflowY: "auto" }}
+                        >
+                          {ingressosSelecionados.map((ingresso) => (
+                            <div
+                              key={ingresso.poltrona}
+                              className="d-flex align-items-center justify-content-between mb-2 p-2 border rounded"
+                              style={{ backgroundColor: "rgba(0,0,0,0.2)" }}
+                            >
+                              <div className="d-flex align-items-center gap-2">
+                                <span
+                                  className="badge bg-primary"
+                                  style={{ minWidth: "50px" }}
+                                >
+                                  <i className="bi bi-chair-fill me-1" />
+                                  {ingresso.poltrona}
+                                </span>
+                                <div
+                                  className="btn-group btn-group-sm"
+                                  role="group"
+                                >
+                                  <input
+                                    type="radio"
+                                    className="btn-check"
+                                    name={`tipo-${ingresso.poltrona}`}
+                                    id={`inteira-${ingresso.poltrona}`}
+                                    checked={ingresso.tipo === "inteira"}
+                                    onChange={() =>
+                                      alterarTipoIngresso(
+                                        ingresso.poltrona,
+                                        "inteira"
+                                      )
+                                    }
+                                  />
+                                  <label
+                                    className="btn btn-outline-primary"
+                                    htmlFor={`inteira-${ingresso.poltrona}`}
+                                    style={{ fontSize: "0.8rem" }}
+                                  >
+                                    Inteira
+                                  </label>
+
+                                  <input
+                                    type="radio"
+                                    className="btn-check"
+                                    name={`tipo-${ingresso.poltrona}`}
+                                    id={`meia-${ingresso.poltrona}`}
+                                    checked={ingresso.tipo === "meia"}
+                                    onChange={() =>
+                                      alterarTipoIngresso(
+                                        ingresso.poltrona,
+                                        "meia"
+                                      )
+                                    }
+                                  />
+                                  <label
+                                    className="btn btn-outline-success"
+                                    htmlFor={`meia-${ingresso.poltrona}`}
+                                    style={{ fontSize: "0.8rem" }}
+                                  >
+                                    Meia
+                                  </label>
+                                </div>
+                              </div>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="fw-bold text-success">
+                                  R${" "}
+                                  {ingresso.tipo === "inteira"
+                                    ? "34,00"
+                                    : "17,00"}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() =>
+                                    selecionarPoltrona(ingresso.poltrona)
+                                  }
+                                  title="Remover"
+                                >
+                                  <i className="bi bi-x" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mb-3">
-                      <label className="form-label d-block">
-                        Tipo de ingresso
+                      <label className="form-label fw-bold">
+                        <i className="bi bi-chair-fill me-2" />
+                        Selecione a Poltrona
                       </label>
 
-                      <div className="form-check">
-                        <input
-                          className={getInputClassIngresso("tipo")}
-                          type="radio"
-                          name="tipo"
-                          id="tipoInteira"
-                          value="inteira"
-                          checked={ingressoFormData.tipo === "inteira"}
-                          onChange={handleIngressoChange}
-                        />
-                        <label
-                          className="form-check-label"
-                          htmlFor="tipoInteira"
-                        >
-                          Inteira (R$ 34,00)
-                        </label>
-                      </div>
-
-                      <div className="form-check">
-                        <input
-                          className={getInputClassIngresso("tipo")}
-                          type="radio"
-                          name="tipo"
-                          id="tipoMeia"
-                          value="meia"
-                          checked={ingressoFormData.tipo === "meia"}
-                          onChange={handleIngressoChange}
-                        />
-                        <label className="form-check-label" htmlFor="tipoMeia">
-                          Meia (R$ 17,00)
-                        </label>
-                      </div>
-
-                      {ingressoErrors.tipo && (
-                        <div className="text-danger small mt-1">
-                          {ingressoErrors.tipo}
+                      {loadingPoltronas ? (
+                        <div className="text-center p-4">
+                          <div
+                            className="spinner-border text-primary"
+                            role="status"
+                          >
+                            <span className="visually-hidden">
+                              Carregando...
+                            </span>
+                          </div>
                         </div>
+                      ) : (
+                        <>
+                          <div className="text-center mb-3">
+                            <div
+                              className="bg-dark text-white py-2 rounded mx-auto"
+                              style={{ width: "60%", fontSize: "0.9rem" }}
+                            >
+                              <i className="bi bi-tv me-2" />
+                              TELA
+                            </div>
+                          </div>
+
+                          <div className="d-flex justify-content-center gap-3 mb-3 small">
+                            <span>
+                              <i className="bi bi-square-fill text-success me-1" />
+                              Disponível
+                            </span>
+                            <span>
+                              <i className="bi bi-square-fill text-danger me-1" />
+                              Ocupada
+                            </span>
+                            <span>
+                              <i className="bi bi-square-fill text-primary me-1" />
+                              Selecionada
+                            </span>
+                          </div>
+
+                          <div
+                            className="border rounded p-2"
+                            style={{
+                              backgroundColor: "rgba(0,0,0,0.2)",
+                              minHeight: "300px",
+                            }}
+                          >
+                            {["A", "B", "C", "D", "E", "F", "G", "H"].map(
+                              (fileira) => {
+                                // Calcular quantas poltronas essa fileira tem
+                                const poltronasDestaFileira =
+                                  todasPoltronas.filter((p) =>
+                                    p.startsWith(fileira)
+                                  );
+
+                                return (
+                                  <div
+                                    key={fileira}
+                                    className="d-flex justify-content-center align-items-center mb-1"
+                                    style={{ gap: "3px" }}
+                                  >
+                                    <span
+                                      className="badge bg-secondary"
+                                      style={{
+                                        width: "25px",
+                                        minWidth: "25px",
+                                        fontSize: "0.7rem",
+                                      }}
+                                    >
+                                      {fileira}
+                                    </span>
+                                    {Array.from(
+                                      { length: poltronasPorFileira },
+                                      (_, i) => {
+                                        const poltrona = `${fileira}${i + 1}`;
+                                        const ocupada =
+                                          poltronasOcupadas.includes(poltrona);
+                                        const selecionada =
+                                          ingressosSelecionados.some(
+                                            (ing) => ing.poltrona === poltrona
+                                          );
+
+                                        if (!todasPoltronas.includes(poltrona))
+                                          return null;
+
+                                        // Adicionar corredor no meio apenas se houver poltronas suficientes (mais de 4)
+                                        const temCorredor =
+                                          poltronasDestaFileira.length > 4;
+                                        const corredor =
+                                          temCorredor &&
+                                          i ===
+                                            Math.floor(
+                                              poltronasPorFileira / 2
+                                            ) -
+                                              1 ? (
+                                            <div
+                                              key={`corredor-${fileira}`}
+                                              style={{ width: "15px" }}
+                                            />
+                                          ) : null;
+
+                                        return (
+                                          <>
+                                            <button
+                                              key={poltrona}
+                                              type="button"
+                                              className={`btn btn-sm ${
+                                                ocupada
+                                                  ? "btn-danger disabled"
+                                                  : selecionada
+                                                  ? "btn-primary"
+                                                  : "btn-outline-success"
+                                              }`}
+                                              style={{
+                                                width: "36px",
+                                                height: "34px",
+                                                fontSize: "0.65rem",
+                                                padding: "2px",
+                                              }}
+                                              disabled={ocupada}
+                                              onClick={() =>
+                                                selecionarPoltrona(poltrona)
+                                              }
+                                            >
+                                              <i
+                                                className="bi bi-chair-fill"
+                                                style={{ fontSize: "0.8rem" }}
+                                              />
+                                              <div
+                                                style={{
+                                                  fontSize: "0.55rem",
+                                                  lineHeight: "1",
+                                                }}
+                                              >
+                                                {poltrona}
+                                              </div>
+                                            </button>
+                                            {corredor}
+                                          </>
+                                        );
+                                      }
+                                    )}
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        </>
                       )}
                     </div>
 
-                    <p className="mt-2">
-                      <strong>Valor:</strong>{" "}
-                      {ingressoFormData.tipo === "inteira"
-                        ? "R$ 34,00"
-                        : "R$ 17,00"}
-                    </p>
+                    <div className="alert alert-dark mb-0">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <div className="fs-5">Valor Total:</div>
+                          <small className="text-muted">
+                            {ingressosSelecionados.length} ingresso
+                            {ingressosSelecionados.length !== 1 ? "s" : ""}
+                          </small>
+                        </div>
+                        <span className="fs-4 fw-bold text-success">
+                          R${" "}
+                          {ingressosSelecionados
+                            .reduce(
+                              (sum, ing) =>
+                                sum + (ing.tipo === "inteira" ? 34 : 17),
+                              0
+                            )
+                            .toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="modal-footer">
@@ -504,16 +913,24 @@ function SessoesPage() {
                       className="btn btn-secondary"
                       onClick={fecharModal}
                     >
+                      <i className="bi bi-x-circle me-2" />
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       className="btn btn-primary"
-                      disabled={ingressoSubmitting}
+                      disabled={
+                        ingressoSubmitting || ingressosSelecionados.length === 0
+                      }
                     >
+                      <i className="bi bi-check-circle me-2" />
                       {ingressoSubmitting
                         ? "Processando..."
-                        : "Confirmar venda"}
+                        : `Confirmar Venda ${
+                            ingressosSelecionados.length > 0
+                              ? `(${ingressosSelecionados.length})`
+                              : ""
+                          }`}
                     </button>
                   </div>
                 </form>
@@ -521,7 +938,7 @@ function SessoesPage() {
             </div>
           </div>
 
-          <div className="modal-backdrop fade show" />
+          <div className="modal-backdrop fade show" onClick={fecharModal} />
         </>
       )}
     </div>
