@@ -1,0 +1,40 @@
+{
+  "filmes": [
+    {
+      "id": "fdaf",
+      "titulo": "Vingadores",
+      "sinopse": "Novo Filme\nTítulo\nSinopse",
+      "classificacao": "16",
+      "duracao": 140,
+      "genero": "Ficção Científica",
+      "dataInicio": "2025-12-01",
+      "dataFim": "2025-12-31"
+    }
+  ],
+  "salas": [
+    {
+      "id": "bd39",
+      "numero": "3",
+      "capacidade": 40
+    }
+  ],
+  "sessoes": [
+    {
+      "id": "4884",
+      "filmeId": "fdaf",
+      "salaId": "bd39",
+      "data": "2025-12-17",
+      "hora": "04:10"
+    }
+  ],
+  "ingressos": [
+    {
+      "id": "e7cd",
+      "sessaoId": "4884",
+      "tipo": "inteira",
+      "valor": 60
+    }
+  ],
+  "lanches": [],
+  "pedidos": []
+}
