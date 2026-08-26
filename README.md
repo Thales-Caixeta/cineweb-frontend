@@ -137,19 +137,6 @@ src/
 
 ---
 
-## ✔ Projeto pronto para apresentação
-
-Esse projeto já contempla:
-
-- Requisitos funcionais
-- Requisitos técnicos
-- Persistência
-- API REST completa
-- UI organizada
-- Modal funcional com lógica de negócio
-
----
-
 ## 👤 Autor
 
 **Thales Moura Machado Caixeta**
