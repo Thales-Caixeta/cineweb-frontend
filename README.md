@@ -69,6 +69,8 @@ Endpoints disponíveis:
 - `/salas`
 - `/sessoes`
 - `/ingressos`
+- `/lanches`
+- `/pedidos`
 
 ### 3. Inicie o frontend:
 
@@ -111,7 +113,7 @@ http://localhost:5173
 
 ### 🎟 **Venda de Ingressos (Modal)**
 
-- Modal ao clicar em “Vender”
+- Modal ao clicar em "Vender"
 - Informações da sessão
 - Escolha entre **Inteira (R$ 34)** ou **Meia (R$ 17)**
 - Inserção automática no banco (`/ingressos`)
@@ -147,3 +149,7 @@ Esse projeto já contempla:
 - Modal funcional com lógica de negócio
 
 ---
+
+## 👤 Autor
+
+**Thales Moura Machado Caixeta**
